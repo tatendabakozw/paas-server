@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .  # Build context is the current directory (where Dockerfile is located)
+    ports:
+      - "5500:5500"  # Maps port 5500 on the host to port 5500 on the container
+    volumes:
+      - .:/app  # Mounts the project folder into the container at /app
+      # - /app/node_modules  # Excludes node_modules from the mounted volume
+      - ./logs:/app/logs  # Mounts the logs folder for persistent logging
+    command: npm run dev  # Runs the development command defined in package.json
+    env_file:
+      - .env  # Loads environment variables from .env file
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/your_database  # MongoDB URI for Docker
+    depends_on:
+      - mongo  # Ensures MongoDB starts before the app
+
+  mongo:
+    image: mongo:latest  # Uses the latest MongoDB image
+    ports:
+      - "27017:27017"  # Exposes MongoDB on port 27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root  # Root username for MongoDB
+      MONGO_INITDB_ROOT_PASSWORD: example  # Root password for MongoDB
+    volumes:
+      - mongo-data:/data/db  # Persistent storage for MongoDB data
+    command: mongod --setParameter diagnosticDataCollectionEnabled=false --quiet
+    logging:
+      driver: "none" 
+
+volumes:
+  mongo-data:
