@@ -2,6 +2,8 @@ import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import bcrypt from 'bcryptjs';
 import User from '@models/userModel';
+import { GITHUB_CALLBACK_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET } from '@utils/constants';
+import { Strategy as GitHubStrategy } from 'passport-github2';
 
 // Define types for done callback
 type DoneCallback = (
@@ -10,6 +12,32 @@ type DoneCallback = (
   options?: { message: string }
 ) => void;
 
+passport.use(new GitHubStrategy({
+  clientID: GITHUB_CLIENT_ID,
+  clientSecret: GITHUB_CLIENT_SECRET,
+  callbackURL: GITHUB_CALLBACK_URL,
+},
+async (accessToken: string, refreshToken: string, profile: any, done: DoneCallback) => {
+  try {
+    // Find or create user
+    let user = await User.findOneAndUpdate(
+      { githubId:profile.id },
+      {
+        $set: {
+          username: profile.username,
+          githubId: profile.id,
+          authMethod: 'github',
+          lastLogin: new Date(),
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    done(null, user);
+  } catch (error) {
+    done(error); // Pass the error to done
+  }
+}));
 
 passport.use(
   new LocalStrategy(

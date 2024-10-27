@@ -1,7 +1,7 @@
 import { Router } from "express";
 const router = Router();
 import passport from "passport";
-import { loginUser, logoutUser, refreshToken, registerUser } from "@controllers/authControllers";
+import { githubCallback, loginUser, logoutUser, refreshToken, registerUser } from "@controllers/authControllers";
 
 /**
  * @swagger
@@ -32,6 +32,9 @@ router.post(
   "/register",
  registerUser
 );
+
+// GitHub callback route to handle OAuth response
+router.get('/github/callback', passport.authenticate('github', { failureRedirect: '/login' }), githubCallback);
 
 /**
  * @swagger

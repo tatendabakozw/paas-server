@@ -12,6 +12,8 @@ import authRoutes from '@routes/authRoutes';
 import userRoutes from '@routes/userRoutes';
 import { PORT, SESSION_SECRET } from '@utils/constants';
 
+
+
 // Load environment variables from .env file
 dotenv.config();
 
@@ -21,10 +23,16 @@ connectDB();
 // Initialize Express app
 const app = express();
 
+const corsOptions = {
+  origin: 'http://localhost:3000', // Frontend URL
+  methods: 'GET,POST,PUT,DELETE,PATCH', // Allow required HTTP methods
+  credentials: true // Allow cookies to be sent in requests
+};
+
 // Middleware setup
+app.use(cors(corsOptions));
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
-app.use(cors()); // Enable Cross-Origin Resource Sharing
 app.use(morgan('dev')); // Log HTTP requests to console in development
 app.use(cookieParser());
 

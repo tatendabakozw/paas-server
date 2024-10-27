@@ -8,103 +8,183 @@ import {
 } from "@helpers/tokenHelpers";
 import { TypedRequestBody } from "src/types/general";
 import { RegisterRequestBody } from "src/types/auth";
-import { JWT_REFRESH_SECRET } from "@utils/constants";
+import {
+  FRONTEND_URL,
+  GITHUB_CALLBACK_URL,
+  GITHUB_CLIENT_ID,
+  JWT_REFRESH_SECRET,
+} from "@utils/constants";
+import axios, { AxiosError } from "axios";
 
-// Register user controller
+// Custom error class for authentication errors
+class AuthError extends Error {
+  constructor(message: string, public statusCode: number = 400) {
+    super(message);
+    this.name = "AuthError";
+  }
+}
+
+// Utility function to handle authentication errors
+const handleAuthError = (error: unknown, res: Response) => {
+  if (error instanceof AuthError) {
+    return res.status(error.statusCode).json({ error: error.message });
+  }
+  if (error instanceof AxiosError) {
+    return res
+      .status(500)
+      .json({ error: "External service error", details: error.message });
+  }
+  console.error("Authentication error:", error);
+  return res.status(500).json({ error: "Internal server error" });
+};
+
+// Cookie configuration based on environment
+const getCookieConfig = (maxAge: number = 7 * 24 * 60 * 60 * 1000) => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict" as const,
+  maxAge,
+});
+
 export const registerUser = async (
   req: TypedRequestBody<RegisterRequestBody>,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password, authMethod } = req.body;
 
-    // Explicitly handle the type of existingUser
-    const existingUser = await User.findOne({ email }).exec();
-
-    if (existingUser) {
-      res.status(400).json({ error: "User already exists" });
+    if (authMethod === "github") {
+      const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${GITHUB_CALLBACK_URL}&scope=user,repo`;
+      res.json({ redirectUrl: githubAuthUrl });
       return;
     }
 
+    // Validate email and password
+    if (!email || !password) {
+      throw new AuthError("Email and password are required");
+    }
+
+    const existingUser = await User.findOne({ email }).exec();
+    if (existingUser) {
+      throw new AuthError("User already exists");
+    }
+
+    // Enforce password strength
+    if (password.length < 8) {
+      throw new AuthError("Password must be at least 8 characters long");
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ email, password: hashedPassword });
-    await newUser.save();
-
-    res.status(201).json({ message: "User registered successfully" });
-    return;
-  } catch (error) {
-    next(error);
-    return;
-  }
-};
-
-// Controller function for login
-export const loginUser = async (req: Request, res: Response) => {
-  try {
-    // Generate tokens
-    const accessToken = generateAccessToken((req.user as any)._id);
-    const refreshToken = generateRefreshToken((req.user as any)._id);
-
-    // Set refresh token in HttpOnly cookie
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Use secure cookies in production
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    const newUser = new User({
+      email,
+      password: hashedPassword,
+      authMethod: "email",
+      createdAt: new Date(),
     });
 
-    // Send access token in response
-    res.json({ accessToken });
+    await newUser.save();
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ error: "Failed to log in" });
+    handleAuthError(error, res);
   }
 };
 
-// Controller function to handle refresh token requests
+export const githubCallback = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new AuthError('Authentication failed');
+    }
+
+    const user = req.user as any;
+
+    const [accessToken, refreshToken] = await Promise.all([
+      generateAccessToken(user._id),
+      generateRefreshToken(user._id),
+    ]);
+
+    // Set refresh token cookie
+    res.cookie('refreshToken', refreshToken, getCookieConfig());
+
+    // Redirect with access token
+    res.redirect(`${FRONTEND_URL}/auth/callback?token=${accessToken}`);
+  } catch (error) {
+    handleAuthError(error, res);
+  }
+  
+};
+
+export const loginUser: RequestHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new AuthError("Authentication failed", 401);
+    }
+
+    const userId = (req.user as any)._id;
+    const [accessToken, refreshToken] = await Promise.all([
+      generateAccessToken(userId),
+      generateRefreshToken(userId),
+    ]);
+
+    // Update last login timestamp
+    await User.findByIdAndUpdate(userId, { lastLogin: new Date() });
+
+    res.cookie("refreshToken", refreshToken, getCookieConfig());
+    res.json({ accessToken });
+  } catch (error) {
+    handleAuthError(error, res);
+  }
+};
+
 export const refreshToken: RequestHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const refreshToken = req.cookies.refreshToken;
-  if (!refreshToken) {
-    res.status(401).json({ error: "Unauthorized. Refresh token missing." });
-    return;
-  }
-
   try {
-    // Verify the refresh token
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      throw new AuthError("Refresh token missing", 401);
+    }
+
     const decoded = await verifyToken(refreshToken, JWT_REFRESH_SECRET);
-    const userId = decoded.userId;
+    const accessToken = await generateAccessToken(decoded.userId);
 
-    // Generate a new access token
-    const newAccessToken = generateAccessToken(userId);
-
-    // Return the new access token in response
-    res.json({ accessToken: newAccessToken });
-  } catch (err) {
-    res.status(403).json({ error: "Invalid or expired refresh token" });
+    res.json({ accessToken });
+  } catch (error) {
+    handleAuthError(error, res);
   }
 };
 
+export const logoutUser: RequestHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    res.clearCookie("refreshToken", getCookieConfig());
 
-export const logoutUser = (req: Request, res: Response): void => {
-    // Clear the refresh token cookie if it exists
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // Secure in production
-    sameSite: "strict",
-  });
-    // If using sessions (optional):
     if (req.logout) {
-      req.logout((err) => {
-        if (err) {
-          return res.status(500).json({ error: "Failed to log out" });
-        }
+      await new Promise<void>((resolve, reject) => {
+        req.logout((err) => {
+          if (err) reject(err);
+          resolve();
+        });
       });
     }
-  
-    // Send a response to instruct the client to remove tokens
-    res.status(200).json({ message: "Logout successful. Please clear access tokens on client side." });
-  };
+
+    // Optional: Invalidate refresh token in database
+    const refreshToken = req.cookies.refreshToken;
+    if (refreshToken) {
+      // Add logic to invalidate the refresh token
+    }
+
+    res.json({ message: "Logged out successfully" });
+  } catch (error) {
+    handleAuthError(error, res);
+  }
+};
