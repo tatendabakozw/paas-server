@@ -9,3 +9,10 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface SessionUser extends Document {
+  userId: string;
+  iat: Date;
+  exp: Date;
+}
+
