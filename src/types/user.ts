@@ -8,6 +8,9 @@ export interface IUser extends Document {
   location?: string; // Optional location field
   createdAt: Date;
   updatedAt: Date;
+  username?: string
+  githubAccessToken?:string
+  githubId?:string
 }
 
 export interface SessionUser extends Document {

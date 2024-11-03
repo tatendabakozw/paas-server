@@ -12,8 +12,6 @@ import authRoutes from '@routes/authRoutes';
 import userRoutes from '@routes/userRoutes';
 import { PORT, SESSION_SECRET } from '@utils/constants';
 
-
-
 // Load environment variables from .env file
 dotenv.config();
 

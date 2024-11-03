@@ -16,18 +16,29 @@ passport.use(new GitHubStrategy({
   clientID: GITHUB_CLIENT_ID,
   clientSecret: GITHUB_CLIENT_SECRET,
   callbackURL: GITHUB_CALLBACK_URL,
+  scope:['user', 'repo']
 },
 async (accessToken: string, refreshToken: string, profile: any, done: DoneCallback) => {
   try {
+
+    // Get primary email from GitHub profile
+    const email = profile.emails && profile.emails[0]?.value;
+    
+    if (!email) {
+      throw new Error('No email provided from GitHub');
+    }
     // Find or create user
     let user = await User.findOneAndUpdate(
-      { githubId:profile.id },
+      { email },
       {
         $set: {
+          email: email,
           username: profile.username,
           githubId: profile.id,
+          githubAccessToken:accessToken,
           authMethod: 'github',
           lastLogin: new Date(),
+          
         }
       },
       { upsert: true, new: true }
@@ -43,7 +54,6 @@ passport.use(
   new LocalStrategy(
     {
       usernameField: 'email',
-      passwordField: 'password',
     },
     async (
       email: string,

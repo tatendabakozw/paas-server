@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import User from "@models/userModel"; 
-import bcrypt from 'bcryptjs'
+import User from "@models/userModel";
+import bcrypt from "bcryptjs";
 
 /**
  * Update user details (profession, location, etc.)
@@ -56,7 +56,16 @@ export const getUserDetails = async (
       res.status(404).json({ error: "User not found" });
       return;
     }
-    res.status(200).json({ user });
+
+    res.status(200).json({
+      success: true,
+      message: 'user details fetched',
+      user: {
+        isGithubConnected: user.githubAccessToken ? true : false,
+        email: user.email,
+        username: user.username,
+      },
+    });
   } catch (error) {
     console.error("Error fetching user details:", error);
     res.status(500).json({ error: "Failed to fetch user details" });
@@ -89,22 +98,25 @@ export const deleteUserAccount = async (
 /**
  * Update user password
  */
-export const updateUserPassword = async (req: any, res: Response): Promise<void> => {
+export const updateUserPassword = async (
+  req: any,
+  res: Response
+): Promise<void> => {
   const userId = req.user?.userId;
   const { currentPassword, newPassword } = req.body;
 
   try {
     const user = await User.findById(userId);
     if (!user) {
-       res.status(404).json({ error: "User not found" });
-       return
+      res.status(404).json({ error: "User not found" });
+      return;
     }
 
     // Check if the current password is correct
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-       res.status(400).json({ error: "Current password is incorrect" });
-       return
+      res.status(400).json({ error: "Current password is incorrect" });
+      return;
     }
 
     // Hash the new password and save it

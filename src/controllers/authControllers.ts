@@ -14,7 +14,8 @@ import {
   GITHUB_CLIENT_ID,
   JWT_REFRESH_SECRET,
 } from "@utils/constants";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
+import passport from "passport";
 
 // Custom error class for authentication errors
 class AuthError extends Error {
@@ -49,7 +50,6 @@ const getCookieConfig = (maxAge: number = 7 * 24 * 60 * 60 * 1000) => ({
 export const registerUser = async (
   req: TypedRequestBody<RegisterRequestBody>,
   res: Response,
-  next: NextFunction
 ): Promise<void> => {
   try {
     const { email, password, authMethod } = req.body;
@@ -62,17 +62,20 @@ export const registerUser = async (
 
     // Validate email and password
     if (!email || !password) {
-      throw new AuthError("Email and password are required");
+      res.status(400).json({message: "Email and password are required", success: false})
+      return
     }
 
     const existingUser = await User.findOne({ email }).exec();
     if (existingUser) {
-      throw new AuthError("User already exists");
+      res.status(400).json({message: "User already exists", success: false})
+      return
     }
 
     // Enforce password strength
     if (password.length < 8) {
-      throw new AuthError("Password must be at least 8 characters long");
+      res.status(400).json({message: "Password must be at least 8 characters long", success: false})
+      return
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -84,7 +87,7 @@ export const registerUser = async (
     });
 
     await newUser.save();
-    res.status(201).json({ message: "User registered successfully" });
+    res.status(201).json({ message: "User registered successfully", success: true });
   } catch (error) {
     handleAuthError(error, res);
   }
@@ -96,10 +99,15 @@ export const githubCallback = async (
 ): Promise<void> => {
   try {
     if (!req.user) {
-      throw new AuthError('Authentication failed');
+      throw new AuthError("Authentication failed");
     }
 
     const user = req.user as any;
+    // Extract email from user object
+    const userEmail = user.email;
+    
+    // You might want to log or use the email
+    console.log('User email:', userEmail);
 
     const [accessToken, refreshToken] = await Promise.all([
       generateAccessToken(user._id),
@@ -107,39 +115,57 @@ export const githubCallback = async (
     ]);
 
     // Set refresh token cookie
-    res.cookie('refreshToken', refreshToken, getCookieConfig());
+    res.cookie("refreshToken", refreshToken, getCookieConfig());
 
-    // Redirect with access token
-    res.redirect(`${FRONTEND_URL}/auth/callback?token=${accessToken}`);
+    // You can include email in the redirect if needed
+    res.redirect(
+      `${FRONTEND_URL}/auth/callback?token=${accessToken}&email=${encodeURIComponent(userEmail)}`
+    );
   } catch (error) {
     handleAuthError(error, res);
   }
-  
 };
 
-export const loginUser: RequestHandler = async (
+export const loginUser: RequestHandler = (
   req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    if (!req.user) {
-      throw new AuthError("Authentication failed", 401);
+  res: Response,
+  next: NextFunction
+): void => {
+  passport.authenticate("local", (err: any, user: any, info: any) => {
+    if (err) {
+      return res.status(500).json({ message: "Internal server error" });
     }
 
-    const userId = (req.user as any)._id;
-    const [accessToken, refreshToken] = await Promise.all([
-      generateAccessToken(userId),
-      generateRefreshToken(userId),
-    ]);
+    if (!user) {
+      // `info.message` contains the specific error message from the strategy
+      return res
+        .status(401)
+        .json({ message: info?.message || "Authentication failed" });
+    }
 
-    // Update last login timestamp
-    await User.findByIdAndUpdate(userId, { lastLogin: new Date() });
+    req.logIn(user, async (loginErr) => {
+      if (loginErr) {
+        return res.status(500).json({ message: "Login failed" });
+      }
 
-    res.cookie("refreshToken", refreshToken, getCookieConfig());
-    res.json({ accessToken });
-  } catch (error) {
-    handleAuthError(error, res);
-  }
+      try {
+        // Generate tokens
+        const [accessToken, refreshToken] = await Promise.all([
+          generateAccessToken(user._id),
+          generateRefreshToken(user._id),
+        ]);
+
+        // Update last login timestamp
+        await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
+
+        // Set refresh token as a cookie
+        res.cookie("refreshToken", refreshToken, getCookieConfig());
+        res.status(200).json({ accessToken });
+      } catch (tokenErr) {
+        return res.status(500).json({ message: "Token generation failed" });
+      }
+    });
+  })(req, res, next);
 };
 
 export const refreshToken: RequestHandler = async (
