@@ -8,7 +8,9 @@ import jwt from "jsonwebtoken";
 
 // Helper function to generate access and refresh tokens
 export const generateAccessToken = (userId: string) => {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+  return jwt.sign({ userId, _id: userId }, JWT_SECRET, { 
+    expiresIn: ACCESS_TOKEN_EXPIRY 
+  });
 };
 
 export const generateRefreshToken = (userId: string) => {

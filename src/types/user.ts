@@ -17,5 +17,9 @@ export interface SessionUser extends Document {
   userId: string;
   iat: Date;
   exp: Date;
+  _id: string;
 }
 
+export interface AuthenticatedRequest extends Request {
+  user?: SessionUser;
+}

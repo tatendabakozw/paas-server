@@ -1,7 +1,6 @@
-import { Router } from "express";
+import { RequestHandler, Router } from "express";
 import { authenticateToken } from "@middlewares/auth";
-import { GITHUB_CALLBACK_URL, GITHUB_CLIENT_ID } from "@utils/constants";
-import { installGitub } from "@controllers/githubControllers";
+import { getRepositoryInfo, getUserRepositories, installGitub } from "@controllers/githubControllers";
 
 const router = Router();
 
@@ -13,11 +12,8 @@ router.post("/install", installGitub);
 // return a list of users gitub repos
 // get request
 // /api/github/repos/:token
-router.get("/repos", authenticateToken, async (req, res, next) => {
-  try {
-  } catch (error) {
-    next(error);
-  }
-});
+router.get("/repositories", authenticateToken, getUserRepositories as RequestHandler);
 
-module.exports = router;
+// get repository info
+router.get("/repository/:owner/:repo", authenticateToken, getRepositoryInfo as RequestHandler);
+export default router

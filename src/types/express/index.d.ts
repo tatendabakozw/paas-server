@@ -1,17 +1,18 @@
-import { IUser } from '@models/userModel';
-import { Express } from 'express-serve-static-core';
+import { Document } from "mongoose";
 
 declare global {
   namespace Express {
     // Extend the Request interface
     interface Request {
-      user?: IUser
+      user?: {
+        userId: string;
+        _id?: string;
+        email?: string;
+      }
     }
-
-    // Extend the User interface
-    interface User  extends IUser{}
   }
 }
 
-// This export makes TypeScript treat this file as a module
+export {};
+
 export {};

@@ -10,6 +10,9 @@ import connectDB from '@config/mongoConfig';
 import passport from '@config/passportConfig';
 import authRoutes from '@routes/authRoutes';
 import userRoutes from '@routes/userRoutes';
+import githubRoutes from '@routes/githubRoutes';
+import projectRoutes from '@routes/project.route'
+import activityRoutes from '@routes/activity.route'
 import { PORT, SESSION_SECRET } from '@utils/constants';
 
 // Load environment variables from .env file
@@ -22,10 +25,11 @@ connectDB();
 const app = express();
 
 const corsOptions = {
-  origin: 'http://localhost:3000', // Frontend URL
-  methods: 'GET,POST,PUT,DELETE,PATCH', // Allow required HTTP methods
-  credentials: true // Allow cookies to be sent in requests
-};
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}
 
 // Middleware setup
 app.use(cors(corsOptions));
@@ -71,6 +75,9 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 // Auth routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/github', githubRoutes);
+app.use('/api/project', projectRoutes);
+app.use('/api/activity', activityRoutes);
 
 // Start the server
 app.listen(PORT, () => {
