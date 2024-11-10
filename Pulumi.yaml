@@ -1,0 +1,7 @@
+name: paas-infrastructure
+runtime: nodejs
+description: Infrastructure as Code for PaaS project
+
+config:
+  aws:region: us-east-1
+  projectName: paas-infrastructure

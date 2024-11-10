@@ -36,3 +36,7 @@ coverage/
 
 # Miscellaneous
 *.tgz
+
+# Pulumi files
+.pulumi/
+Pulumi.*.yaml

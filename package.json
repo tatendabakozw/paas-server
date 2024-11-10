@@ -6,7 +6,13 @@
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/index.js",
-    "dev": "nodemon"
+    "dev": "nodemon",
+    "pulumi:init": "cd src/infrastructure && pulumi stack init dev",
+    "pulumi:up": "cd src/infrastructure && pulumi up",
+    "pulumi:preview": "cd src/infrastructure && pulumi preview",
+    "pulumi:destroy": "cd src/infrastructure && pulumi destroy",
+    "aws:setup": "chmod +x scripts/setup-aws-credentials.sh && ./scripts/setup-aws-credentials.sh"
+    
   },
   "keywords": [],
   "author": "",
@@ -14,6 +20,8 @@
   "dependencies": {
     "@octokit/core": "^6.1.2",
     "@octokit/rest": "^21.0.2",
+    "@pulumi/aws": "^6.58.0",
+    "@pulumi/pulumi": "^3.138.0",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
