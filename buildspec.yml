@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - npm install
+      - npm install -g pulumi
+  
+  build:
+    commands:
+      - cd src/infrastructure
+      - pulumi stack select dev
+      - pulumi up --yes
+      
+  post_build:
+    commands:
+      - echo Deployment completed
+
+artifacts:
+  files:
+    - '**/*'

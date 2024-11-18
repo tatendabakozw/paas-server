@@ -8,11 +8,11 @@ import logger from '@utils/logger'; // Winston logger with path alias
 import { setupSwagger } from '@utils/swagger'; // Import Swagger setup
 import connectDB from '@config/mongoConfig';
 import passport from '@config/passportConfig';
-import authRoutes from '@routes/authRoutes';
-import userRoutes from '@routes/userRoutes';
-import githubRoutes from '@routes/githubRoutes';
-import projectRoutes from '@routes/project.route'
-import activityRoutes from '@routes/activity.route'
+import authRoutes from '@routes/auth.routes';
+import userRoutes from '@routes/user.routes';
+import githubRoutes from '@routes/github.routes';
+import projectRoutes from '@routes/project.routes'
+import activityRoutes from '@routes/activity.routes'
 import { PORT, SESSION_SECRET } from '@utils/constants';
 
 // Load environment variables from .env file

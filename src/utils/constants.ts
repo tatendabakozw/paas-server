@@ -1,3 +1,4 @@
+export const PROJECT_NAME = "quickops"
 export const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
 export const JWT_REFRESH_SECRET =
   process.env.JWT_REFRESH_SECRET || "your_refresh_secret";
@@ -14,6 +15,10 @@ export const GITHUB_HOMEPAGE_URL= process.env.GITHUB_HOMEPAGE_URL || "http://loc
 export const GITHUB_CLIENT_ID= process.env.GITHUB_CLIENT_ID || "github_client_id"
 export const GITHUB_CLIENT_SECRET=process.env.GITHUB_CLIENT_SECRET || "github_client_secret"
 export const GITHUB_API_URL = "https://api.github.com"
+
+export const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || "aws_access_key_id"
+export const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || "aws_secret_access_key"
+export const AWS_REGION = process.env.AWS_REGION || "us-west-2"
 
 
 

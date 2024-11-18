@@ -1,0 +1,8 @@
+{
+    "name": "paas-infrastructure",
+    "main": "index.ts",
+    "dependencies": {
+      "@pulumi/pulumi": "^3.138.0",
+      "@pulumi/aws": "^6.58.0"
+    }
+  }
