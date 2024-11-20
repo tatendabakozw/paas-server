@@ -1,6 +1,7 @@
 name: paas-infrastructure
 runtime: nodejs
 description: Infrastructure as Code for PaaS project
+main: src/helpers/deployWithPulumi.ts
 
 config:
   aws:region: us-east-1

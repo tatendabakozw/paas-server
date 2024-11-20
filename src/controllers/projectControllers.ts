@@ -5,6 +5,7 @@ import { HydratedDocument, Types } from "mongoose";
 import logger from "@utils/logger";
 import { logActivity } from "@services/activityService";
 import { deployProject } from "src/pulumi/deployProject";
+import { teardownProject } from "src/pulumi/teardownProject";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -36,7 +37,20 @@ export const createProject = async (
       version,
       build,
       start,
+      root
     } = req.body;
+
+    const projectInfo ={
+      name,
+      repositoryUrl,
+      branch,
+      envVars
+    };
+
+    if (!name || !repositoryUrl) {
+       res.status(400).json({ error: "Missing required fields: projectName, userId, repositoryUrl" });
+       return
+    }
 
     const nameRegex = /^[a-zA-Z0-9-_]+$/; // Only allow alphanumeric characters, hyphens, and underscores
     if (!nameRegex.test(name)) {
@@ -51,8 +65,6 @@ export const createProject = async (
       return;
     }
 
-    const outputs = await deployProject(name);
-
     // Create the project document
     const project = new Project({
       name,
@@ -64,6 +76,9 @@ export const createProject = async (
     }) as any;
 
     await project.save();
+
+    // extraxt username and repo name from repositoryUrl
+    const [username, repoName] = repositoryUrl.split("/").slice(-2);
 
     // Log activity for project creation
     await logActivity({
@@ -77,11 +92,27 @@ export const createProject = async (
         branch,
       },
     });
-    // Save deployment details to the project
+
+
+    const outputs = await deployProject({githubId: _user.githubId, projectName: name, repoName: repoName, branch: "main", envVars, username: username, accessToken: _user.githubAccessToken});
+    // Log activity for project creation
+    await logActivity({
+      userId: req.user.userId,
+      action: "PROJECT_DEPLOYED",
+      details: `Deployed project with name: ${name}`,
+      projectId: project._id.toString(),
+      metadata: {
+        projectName: name,
+        repositoryUrl,
+        branch,
+      },
+    });
+ 
     await project.save();
 
     res.status(201).json({
       message: "Project created and deployed successfully",
+      projectId: project._id.toString(),
       success: true, outputs
     });
   } catch (error) {
@@ -192,9 +223,10 @@ export const deleteProject = async (
       return;
     }
 
-    const { id } = req.params;
+    const { id } = req.query;
+    console.log(id)
     const project = await Project.findOneAndDelete({
-      _id: id,
+      _id: new Types.ObjectId(id as string),
       userId: new Types.ObjectId(req.user.userId),
     });
 
@@ -202,6 +234,17 @@ export const deleteProject = async (
       res.status(404).json({ message: "Project not found" });
       return;
     }
+    // Step 2: Update project status to "suspended" before teardown
+    project.status = "suspended";
+    project.deploymentStatus = "not_deployed";
+
+    // Step 3: Call Pulumi to destroy resources
+    await teardownProject(project.name);
+
+    // Step 4: Update project status to "archived" after successful teardown
+    project.status = "archived";
+
+    await project.save();
     res.status(200).json({ message: "Project deleted successfully" });
   } catch (error) {
     logger.error("Failed to delete project:", error);

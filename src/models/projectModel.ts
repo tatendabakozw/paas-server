@@ -29,6 +29,7 @@ export interface ProjectDocument extends Document {
   deploymentStatus: "not_deployed" | "deploying" | "deployed" | "failed";
   deploymentUrl?: string;
   lastDeployedAt?: Date;
+  environment?: string;
 }
 
 const EnvVarSchema = new Schema<EnvVar>({

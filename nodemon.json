@@ -1,7 +1,7 @@
 {
     "watch": ["src"],
     "ext": "ts",
-    "ignore": ["src/temp", "src/logs", "node_modules", "*.test.js", "*.log", "temp"],
+    "ignore": ["src/temp", "src/logs", "node_modules", "*.test.js", "*.log", "temp", "src/userApp", "src/pulumi", "userApp"],
     "exec": "ts-node -r tsconfig-paths/register src/index.ts"
   }
   

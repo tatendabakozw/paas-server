@@ -1,0 +1,504 @@
+{
+    "version": 3,
+    "deployment": {
+        "manifest": {
+            "time": "2024-11-19T09:11:20.090103+02:00",
+            "magic": "3cac8822f3247504d1143f82185e4b6ee4e62cd8eed23c044f448363395c81a0",
+            "version": "v3.138.0"
+        },
+        "secrets_providers": {
+            "type": "service",
+            "state": {
+                "url": "https://api.pulumi.com",
+                "owner": "tatendabakozw",
+                "project": "paas-infrastructure",
+                "stack": "dev"
+            }
+        },
+        "metadata": {
+            "integrity_error": {
+                "version": "v3.138.0",
+                "command": "pulumi up --yes --skip-preview --refresh --parallel 1 --client=127.0.0.1:55908 --exec-kind auto.inline --stack dev --non-interactive",
+                "error": "resource urn:pulumi:dev::paas-infrastructure::awsx:lb:ApplicationLoadBalancer::63616801-the-one-lb's dependency urn:pulumi:stack::project::aws:ec2/subnet:Subnet::app-subnet-1 refers to missing resource"
+            }
+        },
+        "resources": [
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::pulumi:pulumi:Stack::paas-infrastructure-dev",
+                "custom": false,
+                "type": "pulumi:pulumi:Stack",
+                "outputs": {
+                    "bucketName": "project-20241115152522782600000001"
+                },
+                "created": "2024-11-15T15:24:28.182945Z",
+                "modified": "2024-11-15T15:24:28.182945Z"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::pulumi:providers:aws::default_6_58_0",
+                "custom": true,
+                "id": "bbb0edc8-a032-432a-93db-411a98786458",
+                "type": "pulumi:providers:aws",
+                "inputs": {
+                    "__internal": {},
+                    "region": "us-east-1",
+                    "skipCredentialsValidation": "false",
+                    "skipRegionValidation": "true",
+                    "version": "6.58.0"
+                },
+                "outputs": {
+                    "region": "us-east-1",
+                    "skipCredentialsValidation": "false",
+                    "skipRegionValidation": "true",
+                    "version": "6.58.0"
+                },
+                "created": "2024-11-15T15:25:20.35855Z",
+                "modified": "2024-11-15T15:25:20.35855Z"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::aws:cloudwatch/logGroup:LogGroup::app-log-group",
+                "custom": true,
+                "id": "app-log-group-e23a2b3",
+                "type": "aws:cloudwatch/logGroup:LogGroup",
+                "inputs": {
+                    "__defaults": [
+                        "name",
+                        "retentionInDays",
+                        "skipDestroy"
+                    ],
+                    "name": "app-log-group-e23a2b3",
+                    "retentionInDays": 0,
+                    "skipDestroy": false
+                },
+                "outputs": {
+                    "arn": "arn:aws:logs:us-east-1:257394488378:log-group:app-log-group-e23a2b3",
+                    "id": "app-log-group-e23a2b3",
+                    "kmsKeyId": "",
+                    "logGroupClass": "STANDARD",
+                    "name": "app-log-group-e23a2b3",
+                    "namePrefix": "",
+                    "retentionInDays": 0,
+                    "skipDestroy": false
+                },
+                "parent": "urn:pulumi:dev::paas-infrastructure::pulumi:pulumi:Stack::paas-infrastructure-dev",
+                "provider": "urn:pulumi:dev::paas-infrastructure::pulumi:providers:aws::default_6_58_0::bbb0edc8-a032-432a-93db-411a98786458",
+                "created": "2024-11-18T16:31:13.059505Z",
+                "modified": "2024-11-18T16:31:13.059505Z"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::aws:ecs/cluster:Cluster::paas-cluster",
+                "custom": true,
+                "id": "arn:aws:ecs:us-east-1:257394488378:cluster/paas-cluster",
+                "type": "aws:ecs/cluster:Cluster",
+                "inputs": {
+                    "__defaults": [],
+                    "name": "paas-cluster"
+                },
+                "outputs": {
+                    "arn": "arn:aws:ecs:us-east-1:257394488378:cluster/paas-cluster",
+                    "configuration": null,
+                    "id": "arn:aws:ecs:us-east-1:257394488378:cluster/paas-cluster",
+                    "name": "paas-cluster",
+                    "serviceConnectDefaults": null,
+                    "settings": [
+                        {
+                            "name": "containerInsights",
+                            "value": "disabled"
+                        }
+                    ]
+                },
+                "parent": "urn:pulumi:dev::paas-infrastructure::pulumi:pulumi:Stack::paas-infrastructure-dev",
+                "provider": "urn:pulumi:dev::paas-infrastructure::pulumi:providers:aws::default_6_58_0::bbb0edc8-a032-432a-93db-411a98786458",
+                "propertyDependencies": {
+                    "name": []
+                },
+                "created": "2024-11-18T16:31:27.248384Z",
+                "modified": "2024-11-18T16:31:27.248384Z"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::aws:ecr/repository:Repository::paas-ecr-repo",
+                "custom": true,
+                "id": "paas-ecr-repo",
+                "type": "aws:ecr/repository:Repository",
+                "inputs": {
+                    "__defaults": [
+                        "imageTagMutability"
+                    ],
+                    "imageTagMutability": "MUTABLE",
+                    "name": "paas-ecr-repo"
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"delete\":1200000000000}}",
+                    "arn": "arn:aws:ecr:us-east-1:257394488378:repository/paas-ecr-repo",
+                    "encryptionConfigurations": [
+                        {
+                            "encryptionType": "AES256",
+                            "kmsKey": ""
+                        }
+                    ],
+                    "forceDelete": null,
+                    "id": "paas-ecr-repo",
+                    "imageScanningConfiguration": {
+                        "scanOnPush": false
+                    },
+                    "imageTagMutability": "MUTABLE",
+                    "name": "paas-ecr-repo",
+                    "registryId": "257394488378",
+                    "repositoryUrl": "257394488378.dkr.ecr.us-east-1.amazonaws.com/paas-ecr-repo"
+                },
+                "parent": "urn:pulumi:dev::paas-infrastructure::pulumi:pulumi:Stack::paas-infrastructure-dev",
+                "provider": "urn:pulumi:dev::paas-infrastructure::pulumi:providers:aws::default_6_58_0::bbb0edc8-a032-432a-93db-411a98786458",
+                "propertyDependencies": {
+                    "name": []
+                },
+                "created": "2024-11-18T16:31:31.071857Z",
+                "modified": "2024-11-18T16:31:31.071857Z"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::pulumi:providers:awsx::default_2_17_0",
+                "custom": true,
+                "id": "934ab329-afa6-40cd-925d-7ed0695db5e5",
+                "type": "pulumi:providers:awsx",
+                "inputs": {
+                    "__internal": {},
+                    "version": "2.17.0"
+                },
+                "outputs": {
+                    "version": "2.17.0"
+                },
+                "created": "2024-11-18T16:31:35.184Z",
+                "modified": "2024-11-18T16:31:35.184Z"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::awsx:lb:ApplicationLoadBalancer::63616801-the-one-lb",
+                "custom": false,
+                "type": "awsx:lb:ApplicationLoadBalancer",
+                "parent": "urn:pulumi:dev::paas-infrastructure::pulumi:pulumi:Stack::paas-infrastructure-dev",
+                "dependencies": [
+                    "urn:pulumi:stack::project::aws:ec2/subnet:Subnet::app-subnet-1",
+                    "urn:pulumi:stack::project::aws:ec2/subnet:Subnet::app-subnet-2",
+                    "urn:pulumi:stack::project::aws:ec2/securityGroup:SecurityGroup::app-sg"
+                ],
+                "created": "2024-11-19T07:11:20.089557Z",
+                "modified": "2024-11-19T07:11:20.089557Z",
+                "sourcePosition": "project:///../../../../../../../snapshot/awsx/bin/lb/applicationLoadBalancer.js#36,9"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::pulumi:providers:docker::default_4_5_7",
+                "custom": true,
+                "id": "27ea1680-f014-42e0-9c63-35b34541b4a2",
+                "type": "pulumi:providers:docker",
+                "inputs": {
+                    "__internal": {},
+                    "version": "4.5.7"
+                },
+                "outputs": {
+                    "version": "4.5.7"
+                },
+                "created": "2024-11-18T16:42:40.413297Z",
+                "modified": "2024-11-18T16:42:40.413297Z"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::aws:ec2/securityGroup:SecurityGroup::63616801-new-new-sg",
+                "custom": true,
+                "id": "sg-0293b319e215c29a2",
+                "type": "aws:ec2/securityGroup:SecurityGroup",
+                "inputs": {
+                    "__defaults": [
+                        "name",
+                        "revokeRulesOnDelete"
+                    ],
+                    "description": "Security group for load balancer",
+                    "egress": [
+                        {
+                            "__defaults": [
+                                "self"
+                            ],
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "fromPort": 0,
+                            "protocol": "-1",
+                            "self": false,
+                            "toPort": 0
+                        }
+                    ],
+                    "ingress": [
+                        {
+                            "__defaults": [
+                                "self"
+                            ],
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "fromPort": 443,
+                            "protocol": "tcp",
+                            "self": false,
+                            "toPort": 443
+                        },
+                        {
+                            "__defaults": [
+                                "self"
+                            ],
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "fromPort": 80,
+                            "protocol": "tcp",
+                            "self": false,
+                            "toPort": 80
+                        }
+                    ],
+                    "name": "63616801-new-new-sg-0e90b0e",
+                    "revokeRulesOnDelete": false,
+                    "tags": {
+                        "Name": "63616801-new-new-security-group"
+                    },
+                    "tagsAll": {
+                        "Name": "63616801-new-new-security-group"
+                    },
+                    "vpcId": "vpc-0ced3c4f6a790ebcf"
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"create\":600000000000,\"delete\":900000000000},\"schema_version\":\"1\"}",
+                    "arn": "arn:aws:ec2:us-east-1:257394488378:security-group/sg-0293b319e215c29a2",
+                    "description": "Security group for load balancer",
+                    "egress": [
+                        {
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "description": "",
+                            "fromPort": 0,
+                            "ipv6CidrBlocks": [],
+                            "prefixListIds": [],
+                            "protocol": "-1",
+                            "securityGroups": [],
+                            "self": false,
+                            "toPort": 0
+                        }
+                    ],
+                    "id": "sg-0293b319e215c29a2",
+                    "ingress": [
+                        {
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "description": "",
+                            "fromPort": 443,
+                            "ipv6CidrBlocks": [],
+                            "prefixListIds": [],
+                            "protocol": "tcp",
+                            "securityGroups": [],
+                            "self": false,
+                            "toPort": 443
+                        },
+                        {
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "description": "",
+                            "fromPort": 80,
+                            "ipv6CidrBlocks": [],
+                            "prefixListIds": [],
+                            "protocol": "tcp",
+                            "securityGroups": [],
+                            "self": false,
+                            "toPort": 80
+                        }
+                    ],
+                    "name": "63616801-new-new-sg-0e90b0e",
+                    "namePrefix": "",
+                    "ownerId": "257394488378",
+                    "revokeRulesOnDelete": false,
+                    "tags": {
+                        "Name": "63616801-new-new-security-group"
+                    },
+                    "tagsAll": {
+                        "Name": "63616801-new-new-security-group"
+                    },
+                    "vpcId": "vpc-0ced3c4f6a790ebcf"
+                },
+                "parent": "urn:pulumi:dev::paas-infrastructure::pulumi:pulumi:Stack::paas-infrastructure-dev",
+                "provider": "urn:pulumi:dev::paas-infrastructure::pulumi:providers:aws::default_6_58_0::bbb0edc8-a032-432a-93db-411a98786458",
+                "created": "2024-11-18T16:42:36.670928Z",
+                "modified": "2024-11-19T06:01:50.284053Z"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::pulumi:providers:aws::default_6_57_0",
+                "custom": true,
+                "id": "b51dcefc-a5f7-4836-93db-e4e2b712d7da",
+                "type": "pulumi:providers:aws",
+                "inputs": {
+                    "__internal": {},
+                    "region": "us-east-1",
+                    "skipCredentialsValidation": "false",
+                    "skipRegionValidation": "true",
+                    "version": "6.57.0"
+                },
+                "outputs": {
+                    "region": "us-east-1",
+                    "skipCredentialsValidation": "false",
+                    "skipRegionValidation": "true",
+                    "version": "6.57.0"
+                },
+                "created": "2024-11-18T16:31:45.0065Z",
+                "modified": "2024-11-18T16:31:45.0065Z"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::awsx:lb:ApplicationLoadBalancer::63616801-new-new",
+                "custom": false,
+                "type": "awsx:lb:ApplicationLoadBalancer",
+                "parent": "urn:pulumi:dev::paas-infrastructure::pulumi:pulumi:Stack::paas-infrastructure-dev",
+                "dependencies": [
+                    "urn:pulumi:dev::paas-infrastructure::aws:ec2/securityGroup:SecurityGroup::63616801-new-new-sg"
+                ],
+                "created": "2024-11-18T16:52:49.037464Z",
+                "modified": "2024-11-18T16:52:49.037464Z",
+                "sourcePosition": "project:///../../../../../../../snapshot/awsx/bin/lb/applicationLoadBalancer.js#36,9"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::awsx:lb:ApplicationLoadBalancer$aws:lb/targetGroup:TargetGroup::63616801-new-new",
+                "custom": true,
+                "id": "arn:aws:elasticloadbalancing:us-east-1:257394488378:targetgroup/63616801-new-new/4bf8638826c9ff14",
+                "type": "aws:lb/targetGroup:TargetGroup",
+                "inputs": {
+                    "__defaults": [
+                        "lambdaMultiValueHeadersEnabled",
+                        "proxyProtocolV2",
+                        "slowStart"
+                    ],
+                    "lambdaMultiValueHeadersEnabled": false,
+                    "name": "63616801-new-new",
+                    "port": 80,
+                    "protocol": "HTTP",
+                    "proxyProtocolV2": false,
+                    "slowStart": 0,
+                    "targetType": "ip",
+                    "vpcId": "vpc-02e1284a2bbfd928b"
+                },
+                "outputs": {
+                    "arn": "arn:aws:elasticloadbalancing:us-east-1:257394488378:targetgroup/63616801-new-new/4bf8638826c9ff14",
+                    "arnSuffix": "targetgroup/63616801-new-new/4bf8638826c9ff14",
+                    "connectionTermination": null,
+                    "deregistrationDelay": 300,
+                    "healthCheck": {
+                        "enabled": true,
+                        "healthyThreshold": 5,
+                        "interval": 30,
+                        "matcher": "200",
+                        "path": "/",
+                        "port": "traffic-port",
+                        "protocol": "HTTP",
+                        "timeout": 5,
+                        "unhealthyThreshold": 2
+                    },
+                    "id": "arn:aws:elasticloadbalancing:us-east-1:257394488378:targetgroup/63616801-new-new/4bf8638826c9ff14",
+                    "ipAddressType": "ipv4",
+                    "lambdaMultiValueHeadersEnabled": false,
+                    "loadBalancerArns": [],
+                    "loadBalancingAlgorithmType": "round_robin",
+                    "loadBalancingAnomalyMitigation": "off",
+                    "loadBalancingCrossZoneEnabled": "use_load_balancer_configuration",
+                    "name": "63616801-new-new",
+                    "namePrefix": "",
+                    "port": 80,
+                    "preserveClientIp": null,
+                    "protocol": "HTTP",
+                    "protocolVersion": "HTTP1",
+                    "proxyProtocolV2": false,
+                    "slowStart": 0,
+                    "stickiness": {
+                        "cookieDuration": 86400,
+                        "cookieName": "",
+                        "enabled": false,
+                        "type": "lb_cookie"
+                    },
+                    "targetFailovers": [],
+                    "targetGroupHealth": {
+                        "dnsFailover": {
+                            "minimumHealthyTargetsCount": "1",
+                            "minimumHealthyTargetsPercentage": "off"
+                        },
+                        "unhealthyStateRouting": {
+                            "minimumHealthyTargetsCount": 1,
+                            "minimumHealthyTargetsPercentage": "off"
+                        }
+                    },
+                    "targetHealthStates": [],
+                    "targetType": "ip",
+                    "vpcId": "vpc-02e1284a2bbfd928b"
+                },
+                "parent": "urn:pulumi:dev::paas-infrastructure::awsx:lb:ApplicationLoadBalancer::63616801-new-new",
+                "provider": "urn:pulumi:dev::paas-infrastructure::pulumi:providers:aws::default_6_57_0::b51dcefc-a5f7-4836-93db-e4e2b712d7da",
+                "created": "2024-11-18T16:53:10.870419Z",
+                "modified": "2024-11-18T16:53:10.870419Z",
+                "sourcePosition": "project:///../../../../../../../snapshot/awsx/bin/lb/applicationLoadBalancer.js#121,35"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::awsx:lb:ApplicationLoadBalancer::63616801-new-project-item-new",
+                "custom": false,
+                "type": "awsx:lb:ApplicationLoadBalancer",
+                "parent": "urn:pulumi:dev::paas-infrastructure::pulumi:pulumi:Stack::paas-infrastructure-dev",
+                "created": "2024-11-18T16:31:45.868131Z",
+                "modified": "2024-11-18T16:31:45.868131Z",
+                "sourcePosition": "project:///../../../../../../../snapshot/awsx/bin/lb/applicationLoadBalancer.js#36,9"
+            },
+            {
+                "urn": "urn:pulumi:dev::paas-infrastructure::aws:s3/bucket:Bucket::userBucket",
+                "custom": true,
+                "id": "project-20241115152522782600000001",
+                "type": "aws:s3/bucket:Bucket",
+                "inputs": {
+                    "__defaults": [
+                        "acl",
+                        "forceDestroy"
+                    ],
+                    "acl": "private",
+                    "bucketPrefix": "project-",
+                    "forceDestroy": false
+                },
+                "outputs": {
+                    "accelerationStatus": "",
+                    "acl": "private",
+                    "arn": "arn:aws:s3:::project-20241115152522782600000001",
+                    "bucket": "project-20241115152522782600000001",
+                    "bucketDomainName": "project-20241115152522782600000001.s3.amazonaws.com",
+                    "bucketPrefix": "project-",
+                    "bucketRegionalDomainName": "project-20241115152522782600000001.s3.amazonaws.com",
+                    "corsRules": [],
+                    "forceDestroy": false,
+                    "grants": [],
+                    "hostedZoneId": "Z3AQBSTGFYJSTF",
+                    "id": "project-20241115152522782600000001",
+                    "lifecycleRules": [],
+                    "loggings": [],
+                    "objectLockConfiguration": null,
+                    "policy": null,
+                    "region": "us-east-1",
+                    "replicationConfiguration": null,
+                    "requestPayer": "BucketOwner",
+                    "serverSideEncryptionConfiguration": {
+                        "rule": {
+                            "applyServerSideEncryptionByDefault": {
+                                "kmsMasterKeyId": "",
+                                "sseAlgorithm": "AES256"
+                            },
+                            "bucketKeyEnabled": false
+                        }
+                    },
+                    "versioning": {
+                        "enabled": false,
+                        "mfaDelete": false
+                    },
+                    "website": null,
+                    "websiteDomain": null,
+                    "websiteEndpoint": null
+                },
+                "parent": "urn:pulumi:dev::paas-infrastructure::pulumi:pulumi:Stack::paas-infrastructure-dev",
+                "provider": "urn:pulumi:dev::paas-infrastructure::pulumi:providers:aws::default_6_58_0::bbb0edc8-a032-432a-93db-411a98786458",
+                "created": "2024-11-15T15:25:30.5348Z",
+                "modified": "2024-11-15T15:25:30.5348Z"
+            }
+        ]
+    }
+}
