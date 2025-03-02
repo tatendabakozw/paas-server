@@ -6,7 +6,7 @@ interface LogActivityParams {
   userId: string;
   action: ActivityAction;
   details: string;
-  projectId?: string;
+  projectId?: any;
   metadata?: Record<string, any>;
 }
 

@@ -4,8 +4,6 @@ import { Request, Response } from "express";
 import { HydratedDocument, Types } from "mongoose";
 import logger from "@utils/logger";
 import { logActivity } from "@services/activityService";
-import { deployProject } from "src/pulumi/deployProject";
-import { teardownProject } from "src/pulumi/teardownProject";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -20,50 +18,63 @@ export const createProject = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
+  // Check if the user is authenticated
+  // Check if the user is authenticated
+  if (!req.user?.userId) {
+    res.status(401).json({
+      success: false,
+      error: "Unauthorized",
+      message: "User authentication required"
+    });
+    return;
+  }
+
+  const {
+    name,
+    description,
+    repositoryUrl,
+    branch,
+    envVars,
+    runtime,
+    version,
+    build,
+    start,
+    root
+  } = req.body;
+
+  // Validate required fields
+  if (!name || !repositoryUrl) {
+    res.status(400).json({
+      success: false,
+      error: "MISSING_FIELDS",
+      message: "Missing required fields: name and repositoryUrl are required"
+    });
+    return;
+  }
+
+  // Validate project name format
+  const nameRegex = /^[a-zA-Z0-9-_]+$/;
+  if (!nameRegex.test(name)) {
+    res.status(400).json({
+      success: false,
+      error: "INVALID_NAME_FORMAT",
+      message: "Project name must only contain alphanumeric characters, hyphens, and underscores"
+    });
+    return;
+  }
+
+  const _user = await User.findById(req.user.userId);
+
+
+  if (!_user) {
+    res.status(401).json({
+      success: false,
+      error: "USER_NOT_FOUND",
+      message: "User account not found"
+    });
+    return;
+  }
   try {
-    // Check if the user is authenticated
-    if (!req.user?.userId) {
-      res.status(401).json({ message: "Unauthorized" });
-      return;
-    }
-
-    const {
-      name,
-      description,
-      repositoryUrl,
-      branch,
-      envVars,
-      runtime,
-      version,
-      build,
-      start,
-      root
-    } = req.body;
-
-    const projectInfo ={
-      name,
-      repositoryUrl,
-      branch,
-      envVars
-    };
-
-    if (!name || !repositoryUrl) {
-       res.status(400).json({ error: "Missing required fields: projectName, userId, repositoryUrl" });
-       return
-    }
-
-    const nameRegex = /^[a-zA-Z0-9-_]+$/; // Only allow alphanumeric characters, hyphens, and underscores
-    if (!nameRegex.test(name)) {
-      res.status(400).json({ message: "Project name must not contain special characters or spaces." });
-      return;
-    }
-
-    const _user = await User.findById(req.user.userId);
-
-    if (!_user) {
-      res.status(401).json({ message: "User not found" });
-      return;
-    }
 
     // Create the project document
     const project = new Project({
@@ -71,21 +82,19 @@ export const createProject = async (
       description,
       userId: new Types.ObjectId(req.user.userId),
       repositoryUrl,
-      branch,
+      branch: branch || "main",
       envVars,
-    }) as any;
+    });
+
 
     await project.save();
-
-    // extraxt username and repo name from repositoryUrl
-    const [username, repoName] = repositoryUrl.split("/").slice(-2);
 
     // Log activity for project creation
     await logActivity({
       userId: req.user.userId,
       action: "PROJECT_CREATED",
       details: `Created new project: ${name}`,
-      projectId: project._id.toString(),
+      projectId: project._id,
       metadata: {
         projectName: name,
         repositoryUrl,
@@ -93,31 +102,31 @@ export const createProject = async (
       },
     });
 
-
-    const outputs = await deployProject({githubId: _user.githubId, projectName: name, repoName: repoName, branch: "main", envVars, username: username, accessToken: _user.githubAccessToken});
-    // Log activity for project creation
-    await logActivity({
-      userId: req.user.userId,
-      action: "PROJECT_DEPLOYED",
-      details: `Deployed project with name: ${name}`,
-      projectId: project._id.toString(),
-      metadata: {
-        projectName: name,
-        repositoryUrl,
-        branch,
-      },
+    res.status(201).json({
+      success: true,
+      message: "Project created successfully",
+      projectId: project._id,
+      data: {
+        name: project.name,
+        repositoryUrl: project.repositoryUrl,
+        branch: project.branch
+      }
     });
- 
+
     await project.save();
 
     res.status(201).json({
       message: "Project created and deployed successfully",
-      projectId: project._id.toString(),
-      success: true, outputs
+      projectId: project._id,
+      success: true,
     });
   } catch (error) {
-    console.error("Failed to create project:", error);
-    res.status(500).json({ message: "Failed to create project", error });
+    logger.error("Failed to create project:", error);
+    res.status(500).json({
+      success: false,
+      error: "SERVER_ERROR",
+      message: "An unexpected error occurred while creating the project"
+    });
   }
 };
 
@@ -237,9 +246,6 @@ export const deleteProject = async (
     // Step 2: Update project status to "suspended" before teardown
     project.status = "suspended";
     project.deploymentStatus = "not_deployed";
-
-    // Step 3: Call Pulumi to destroy resources
-    await teardownProject(project.name);
 
     // Step 4: Update project status to "archived" after successful teardown
     project.status = "archived";
