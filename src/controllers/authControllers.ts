@@ -137,7 +137,6 @@ export const loginUser: RequestHandler = (
     }
 
     if (!user) {
-      // `info.message` contains the specific error message from the strategy
       return res
         .status(401)
         .json({ message: info?.message || "Authentication failed" });
@@ -149,9 +148,9 @@ export const loginUser: RequestHandler = (
       }
 
       try {
-        // Generate tokens
+        // Generate tokens with consistent user data
         const [accessToken, refreshToken] = await Promise.all([
-          generateAccessToken(user._id),
+          generateAccessToken(user._id, user.email),
           generateRefreshToken(user._id),
         ]);
 
@@ -160,7 +159,13 @@ export const loginUser: RequestHandler = (
 
         // Set refresh token as a cookie
         res.cookie("refreshToken", refreshToken, getCookieConfig());
-        res.status(200).json({ accessToken });
+        res.status(200).json({ 
+          accessToken,
+          user: {
+            userId: user._id,
+            email: user.email
+          }
+        });
       } catch (tokenErr) {
         return res.status(500).json({ message: "Token generation failed" });
       }

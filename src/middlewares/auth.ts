@@ -3,14 +3,6 @@ import { JWT_SECRET } from "@utils/constants";
 import { Request, Response, NextFunction } from "express";
 import logger from '@utils/logger';
 
-export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ error: "Authentication required" });
-};
-
-
 export const authenticateToken = async (
   req: Request,
   res: Response,
@@ -28,6 +20,7 @@ export const authenticateToken = async (
     const decoded = await verifyToken(token, JWT_SECRET);
     req.user = {
       userId: decoded.userId,
+      _id: decoded.userId,
       email: decoded.email
     };
     next();

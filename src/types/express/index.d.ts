@@ -10,9 +10,13 @@ declare global {
         email?: string;
       }
     }
+
+    interface User {
+      userId: string;
+      _id?: string;
+      email?: string;
+    }
   }
 }
-
-export {};
 
 export {};

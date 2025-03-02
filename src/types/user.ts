@@ -13,13 +13,10 @@ export interface IUser extends Document {
   githubId?:string
 }
 
-export interface SessionUser extends Document {
+export interface SessionUser {
   userId: string;
-  iat: Date;
-  exp: Date;
+  iat?: number;
+  exp?: number;
   _id: string;
-}
-
-export interface AuthenticatedRequest extends Request {
-  user?: SessionUser;
+  email?: string;
 }
