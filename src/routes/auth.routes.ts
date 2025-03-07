@@ -83,7 +83,7 @@ router.get('/github/callback', passport.authenticate('github', { failureRedirect
  *           accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  */
 
-router.post("/login", passport.authenticate("local"), loginUser);
+router.post("/login", loginUser);
 
 /**
  * @swagger

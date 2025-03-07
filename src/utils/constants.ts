@@ -24,5 +24,7 @@ export const VPC_ID = process.env.VPC_ID || "vpc-dddddddddddd"
 export const ECR_REPO_NAME = process.env.ECR_REPO_NAME || "paas-ecr-repo"
 export const ECS_CLUSTER_NAME = process.env.ECS_CLUSTER_NAME || "paas-cluster"
 
+export const DIGITALOCEAN_TOKEN = process.env.DIGITALOCEAN_TOKEN || "notoken"
+
 
 

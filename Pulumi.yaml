@@ -1,9 +1,8 @@
-name: paas-infrastructure
+name: dop-paas
 runtime: nodejs
-description: Infrastructure as Code for PaaS project
-main: src/helpers/deployWithPulumi.ts
+main: src/infrastructure/index.ts
+description: Infrastructure as Code for PaaS project using DigitalOcean
 
 config:
-  aws:region: us-east-1
-  projectName: paas-infrastructure
-  awsProfile: default
+  projectName: dop-paas
+  digitalocean:region: nyc1

@@ -4,6 +4,7 @@ import { Request, Response } from "express";
 import { HydratedDocument, Types } from "mongoose";
 import logger from "@utils/logger";
 import { logActivity } from "@services/activityService";
+import { deployProject } from "@helpers/deployProject";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -18,7 +19,6 @@ export const createProject = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  // Check if the user is authenticated
   // Check if the user is authenticated
   if (!req.user?.userId) {
     res.status(401).json({
@@ -41,6 +41,9 @@ export const createProject = async (
     start,
     root
   } = req.body;
+
+  const projectConfig = {}
+  const projectName = name
 
   // Validate required fields
   if (!name || !repositoryUrl) {
@@ -87,7 +90,6 @@ export const createProject = async (
     });
 
 
-    await project.save();
 
     // Log activity for project creation
     await logActivity({
@@ -102,30 +104,46 @@ export const createProject = async (
       },
     });
 
+    await project.save()
+
+    const deploymentResult = await deployProject(projectName, projectConfig);
+    // Update project with deployment information
+    project.deploymentStatus = "deployed";
+    project.deploymentUrl = deploymentResult.deploymentDetails.dropletIp;
+    project.lastDeployedAt = new Date();
+
+     // Save the project after deployment
+     await project.save();
+
+
     res.status(201).json({
       success: true,
-      message: "Project created successfully",
-      projectId: project._id,
-      data: {
-        name: project.name,
-        repositoryUrl: project.repositoryUrl,
-        branch: project.branch
-      }
-    });
-
-    await project.save();
-
-    res.status(201).json({
       message: "Project created and deployed successfully",
-      projectId: project._id,
-      success: true,
-    });
+      data: {
+          project: {
+              id: project._id,
+              name: project.name,
+              repositoryUrl: project.repositoryUrl,
+              branch: project.branch,
+              status: project.status,
+          },
+          deployment: {
+              status: project.deploymentStatus,
+              url: project.deploymentUrl,
+              lastDeployedAt: project.lastDeployedAt,
+              dropletId: deploymentResult.deploymentDetails.dropletId,
+          }
+      }
+  });
+
+   
   } catch (error) {
     logger.error("Failed to create project:", error);
     res.status(500).json({
       success: false,
       error: "SERVER_ERROR",
-      message: "An unexpected error occurred while creating the project"
+      message: "An unexpected error occurred while creating the project",
+      precise: error
     });
   }
 };
