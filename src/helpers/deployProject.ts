@@ -11,6 +11,13 @@ export async function deployProject(projectName: string, projectConfig: any) {
     if (!stackExists) {
         await createPulumiStack(stackName);
         await execPromise(`pulumi config set projectName ${projectName} --stack ${stackName}`);
+        // Escape the repository URL properly
+        const escapedRepoUrl = projectConfig.metadata.repositoryUrl.replace(/"/g, '\\"');
+        await execPromise(`pulumi config set repositoryUrl "${escapedRepoUrl}" --stack ${stackName}`);
+        await execPromise(`pulumi config set githubToken "${projectConfig.githubToken}" --secret --stack ${stackName}`);
+        if (projectConfig.metadata.branch) {
+            await execPromise(`pulumi config set branch "${projectConfig.metadata.branch}" --stack ${stackName}`);
+        }
     }
 
     try {

@@ -42,8 +42,7 @@ export const createProject = async (
     root
   } = req.body;
 
-  const projectConfig = {}
-  const projectName = name
+  
 
   // Validate required fields
   if (!name || !repositoryUrl) {
@@ -106,37 +105,57 @@ export const createProject = async (
 
     await project.save()
 
+    const projectConfig = {
+      metadata: {
+        repositoryUrl,
+        branch: branch || "main",
+        runtime,
+        version,
+        build,
+        start,
+        root
+      },
+      envVars: envVars || {},  // Environment variables for the application
+      instanceType: "s-1vcpu-1gb", // Can be made configurable if needed
+      region: "nyc1",  // Can be made configurable if needed
+      githubToken: _user.githubAccessToken?.toString()
+    }
+    const projectName = name
+
     const deploymentResult = await deployProject(projectName, projectConfig);
-    // Update project with deployment information
+
+    if (!deploymentResult.success) {
+      throw new Error(deploymentResult.raw || 'Deployment failed');
+    }
+
     project.deploymentStatus = "deployed";
     project.deploymentUrl = deploymentResult.deploymentDetails.dropletIp;
     project.lastDeployedAt = new Date();
 
-     // Save the project after deployment
-     await project.save();
+    await project.save();
 
 
     res.status(201).json({
       success: true,
       message: "Project created and deployed successfully",
       data: {
-          project: {
-              id: project._id,
-              name: project.name,
-              repositoryUrl: project.repositoryUrl,
-              branch: project.branch,
-              status: project.status,
-          },
-          deployment: {
-              status: project.deploymentStatus,
-              url: project.deploymentUrl,
-              lastDeployedAt: project.lastDeployedAt,
-              dropletId: deploymentResult.deploymentDetails.dropletId,
-          }
+        project: {
+          id: project._id,
+          name: project.name,
+          repositoryUrl: project.repositoryUrl,
+          branch: project.branch,
+          status: project.status,
+        },
+        deployment: {
+          status: project.deploymentStatus,
+          url: project.deploymentUrl,
+          lastDeployedAt: project.lastDeployedAt,
+          dropletId: "project.dropletId",
+        }
       }
-  });
+    });
 
-   
+
   } catch (error) {
     logger.error("Failed to create project:", error);
     res.status(500).json({
