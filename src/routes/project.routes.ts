@@ -6,6 +6,7 @@ import {
   getProject,
   listUserProjects,
   updateProject,
+  getProjectLogs,
 } from "@controllers/projectControllers";
 
 const router = Router();
@@ -196,5 +197,44 @@ router.put("/:id", authenticateToken, updateProject as RequestHandler);
  *         description: Unauthorized
  */
 router.delete("/:id", authenticateToken, deleteProject as RequestHandler);
+
+/**
+ * @swagger
+ * /project/{id}/logs:
+ *   get:
+ *     summary: Get logs for a specific project
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *           default: 100
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *     responses:
+ *       200:
+ *         description: Project logs retrieved successfully
+ *       404:
+ *         description: Project not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/:id/logs", authenticateToken, getProjectLogs as RequestHandler);
 
 export default router;

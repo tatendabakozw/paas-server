@@ -5,6 +5,9 @@ import { HydratedDocument, Types } from "mongoose";
 import logger from "@utils/logger";
 import { logActivity } from "@services/activityService";
 import { deployProject } from "@helpers/deployProject";
+import { readFile } from 'fs/promises';
+import path from 'path';
+import Activity from "@models/activityModel";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -299,3 +302,115 @@ export const deleteProject = async (
     res.status(500).json({ message: "Failed to delete project", error });
   }
 };
+
+// Get project logs
+export const getProjectLogs = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const { id } = req.params;
+    const { limit = 100, startDate, endDate } = req.query;
+
+    // First verify the project exists and belongs to the user
+    const project = await Project.findOne({
+      _id: id,
+      userId: new Types.ObjectId(req.user.userId),
+    });
+
+    if (!project) {
+      res.status(404).json({ message: "Project not found" });
+      return;
+    }
+
+    // Get both system logs and activity logs
+    const [systemLogs, activityLogs] = await Promise.all([
+      // Get system logs from the log file
+      readProjectSystemLogs(project.name, {
+        limit: Number(limit),
+        startDate: startDate ? new Date(startDate as string) : undefined,
+        endDate: endDate ? new Date(endDate as string) : undefined,
+      }),
+      // Get activity logs from the database
+      Activity.find({ 
+        projectId: new Types.ObjectId(id),
+        ...(startDate && { timestamp: { $gte: new Date(startDate as string) } }),
+        ...(endDate && { timestamp: { $lte: new Date(endDate as string) } }),
+      })
+      .sort({ timestamp: -1 })
+      .limit(Number(limit))
+    ]);
+
+    // Combine and sort all logs by timestamp
+    const combinedLogs = [
+      ...systemLogs.map(log => ({
+        ...log,
+        type: 'system'
+      })),
+      ...activityLogs.map(log => ({
+        timestamp: log.timestamp,
+        level: 'info',
+        message: log.details,
+        action: log.action,
+        metadata: log.metadata,
+        type: 'activity'
+      }))
+    ].sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    res.status(200).json({
+      projectId: id,
+      projectName: project.name,
+      logs: combinedLogs
+    });
+  } catch (error) {
+    logger.error("Failed to retrieve project logs:", error);
+    res.status(500).json({ 
+      message: "Failed to retrieve project logs", 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+};
+
+// Helper function to read system logs
+async function readProjectSystemLogs(projectName: string, options: {
+  limit?: number;
+  startDate?: Date;
+  endDate?: Date;
+}) {
+  try {
+    const logPath = path.join(process.cwd(), 'logs', 'combined.log');
+    const logContent = await readFile(logPath, 'utf-8');
+    
+    // Parse log lines and filter by project name
+    const logs = logContent
+      .split('\n')
+      .filter(line => line.trim())
+      .filter(line => line.includes(projectName))
+      .map(line => {
+        const [timestamp, level, ...messageParts] = line.split(' ');
+        return {
+          timestamp: new Date(timestamp),
+          level: level.replace('[', '').replace(']:', '').toLowerCase(),
+          message: messageParts.join(' ')
+        };
+      })
+      .filter(log => {
+        if (options.startDate && log.timestamp < options.startDate) return false;
+        if (options.endDate && log.timestamp > options.endDate) return false;
+        return true;
+      })
+      .slice(0, options.limit);
+
+    return logs;
+  } catch (error) {
+    logger.error(`Error reading system logs for project ${projectName}:`, error);
+    return [];
+  }
+}
