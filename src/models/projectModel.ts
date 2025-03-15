@@ -30,6 +30,7 @@ export interface ProjectDocument extends Document {
   deploymentUrl?: string;
   lastDeployedAt?: Date;
   environment?: string;
+  projectType?:"static-site" | "web-service"
 }
 
 const EnvVarSchema = new Schema<EnvVar>({
@@ -57,6 +58,10 @@ const ProjectSchema = new Schema<ProjectDocument>(
     description: {
       type: String,
       trim: true,
+    },
+    projectType: {
+      type: String,
+      required: true,
     },
     userId: {
       type: Schema.Types.ObjectId,

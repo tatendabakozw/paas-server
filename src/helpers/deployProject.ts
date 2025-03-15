@@ -12,9 +12,10 @@ export async function deployProject(projectName: string, projectConfig: any) {
         await createPulumiStack(stackName);
         await execPromise(`pulumi config set projectName ${projectName} --stack ${stackName}`);
         // Escape the repository URL properly
-        const escapedRepoUrl = projectConfig.metadata.repositoryUrl.replace(/"/g, '\\"');
-        await execPromise(`pulumi config set repositoryUrl "${escapedRepoUrl}" --stack ${stackName}`);
+        // const escapedRepoUrl = projectConfig.metadata.repositoryUrl.replace(/"/g, '\\"');
+        await execPromise(`pulumi config set repositoryUrl "${projectConfig.metadata.repositoryUrl}" --stack ${stackName}`);
         await execPromise(`pulumi config set githubToken "${projectConfig.githubToken}" --secret --stack ${stackName}`);
+        await execPromise(`pulumi config set githubToken "${projectConfig.projectType}" --stack ${stackName}`);
         if (projectConfig.metadata.branch) {
             await execPromise(`pulumi config set branch "${projectConfig.metadata.branch}" --stack ${stackName}`);
         }
@@ -26,12 +27,14 @@ export async function deployProject(projectName: string, projectConfig: any) {
         const outputs = await execPromise(`pulumi stack output --stack ${stackName} --json`);
         const parsedOutputs = JSON.parse(outputs);
 
+        console.log("results from deployment: ", parsedOutputs);
+
         return {
             success: true,
             deploymentDetails: {
                 stackName,
-                dropletIp: parsedOutputs.dropletIp,
-                dropletId: parsedOutputs.dropletId,
+                appUrl: parsedOutputs.appUrl,
+                appId: parsedOutputs.appId,
                 status: 'deployed'
             },
             raw: result

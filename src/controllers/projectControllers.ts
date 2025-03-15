@@ -39,7 +39,8 @@ export const createProject = async (
     version,
     build,
     start,
-    root
+    root,
+    projectType
   } = req.body;
 
   
@@ -86,6 +87,7 @@ export const createProject = async (
       repositoryUrl,
       branch: branch || "main",
       envVars,
+      projectType
     });
 
 
@@ -118,7 +120,8 @@ export const createProject = async (
       envVars: envVars || {},  // Environment variables for the application
       instanceType: "s-1vcpu-1gb", // Can be made configurable if needed
       region: "nyc1",  // Can be made configurable if needed
-      githubToken: _user.githubAccessToken?.toString()
+      githubToken: _user.githubAccessToken?.toString(),
+      projectType
     }
     const projectName = name
 
@@ -129,7 +132,7 @@ export const createProject = async (
     }
 
     project.deploymentStatus = "deployed";
-    project.deploymentUrl = deploymentResult.deploymentDetails.dropletIp;
+    project.deploymentUrl = deploymentResult.deploymentDetails.appUrl;
     project.lastDeployedAt = new Date();
 
     await project.save();
@@ -145,12 +148,14 @@ export const createProject = async (
           repositoryUrl: project.repositoryUrl,
           branch: project.branch,
           status: project.status,
+          projectType: project.projectType
         },
         deployment: {
           status: project.deploymentStatus,
           url: project.deploymentUrl,
           lastDeployedAt: project.lastDeployedAt,
-          dropletId: "project.dropletId",
+          appId: deploymentResult.deploymentDetails.appId,
+          stackName: deploymentResult.deploymentDetails.stackName
         }
       }
     });
