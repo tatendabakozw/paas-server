@@ -50,6 +50,8 @@ export const createProject = async (
       startCommand,
     } = req.body;
 
+    
+
     const _user = await User.findById(req.user.userId);
 
     if (!_user) {
@@ -77,6 +79,15 @@ export const createProject = async (
       return;
     }
     
+    const existingProject = await Project.findOne({ name: name.trim() });
+    if (existingProject) {
+      res.status(400).json({
+        success: false,
+        error: "DUPLICATE_NAME",
+        message: "A project with this name already exists. Please choose a different name."
+      });
+      return;
+    }
 
     // Enhanced validation logging
     logger.info(`Starting project creation`, {
