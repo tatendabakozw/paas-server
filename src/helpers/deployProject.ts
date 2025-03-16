@@ -3,10 +3,7 @@ import { execPromise } from './shellHelper';
 
 export async function deployProject(projectName: string, projectConfig: any) {
     const stackName = `project-stack-${projectName}`;
-
-    console.log("stack name: ", stackName);
     const stackExists = await checkIfStackExists(stackName);
-    console.log("stack exists: ", stackExists);
   
     if (!stackExists) {
         await createPulumiStack(stackName);

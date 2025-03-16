@@ -13,3 +13,9 @@ Pulumi commands
 pulumi stack ls
 pulumi destroy --stack <stack-name> --yes
 pulumi stack rm <stack-name> --yes
+
+TODO: fix my auth refresh tokens
+TODO: make edit project accassible and make edit project use pulumi
+TODO: make delete project accessible
+TODO: put out logs from digital ocean to frontend
+TODO: when user pushes to github, update project

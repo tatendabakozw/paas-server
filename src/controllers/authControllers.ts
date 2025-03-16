@@ -16,6 +16,8 @@ import {
 } from "@utils/constants";
 import { AxiosError } from "axios";
 import passport from "passport";
+import jwt from "jsonwebtoken";
+import logger from "@utils/logger";
 
 // Custom error class for authentication errors
 class AuthError extends Error {
@@ -175,20 +177,46 @@ export const loginUser: RequestHandler = (
 
 export const refreshToken: RequestHandler = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ): Promise<void> => {
   try {
     const refreshToken = req.cookies.refreshToken;
+
     if (!refreshToken) {
-      throw new AuthError("Refresh token missing", 401);
+      res.status(401).json({ message: "Refresh token not found" });
+      return;
     }
 
-    const decoded = await verifyToken(refreshToken, JWT_REFRESH_SECRET);
-    const accessToken = await generateAccessToken(decoded.userId);
+    const decoded = await verifyToken(refreshToken, JWT_REFRESH_SECRET) as {
+      userId: string;
+    };
 
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      res.status(403).json({ message: "Invalid refresh token" });
+      return;
+    }
+
+    // Generate both new tokens
+    const [accessToken, newRefreshToken] = await Promise.all([
+      generateAccessToken(user._id, user.email),
+      generateRefreshToken(user._id)
+    ]);
+
+    // Set new refresh token cookie
+    res.cookie("refreshToken", newRefreshToken, getCookieConfig());
+
+    // Send new access token
     res.json({ accessToken });
   } catch (error) {
-    handleAuthError(error, res);
+    logger.error("Error in refreshToken:", error);
+    if (error instanceof jwt.TokenExpiredError) {
+      res.clearCookie("refreshToken", getCookieConfig()); // Clear expired cookie
+      res.status(403).json({ message: "Refresh token expired" });
+      return;
+    }
+    res.status(403).json({ message: "Invalid refresh token" });
   }
 };
 

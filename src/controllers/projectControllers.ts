@@ -46,7 +46,7 @@ export const createProject = async (
     projectType
   } = req.body;
 
-  
+
 
   // Validate required fields
   if (!name || !repositoryUrl) {
@@ -139,7 +139,6 @@ export const createProject = async (
     project.lastDeployedAt = new Date();
 
     await project.save();
-
 
     res.status(201).json({
       success: true,
@@ -337,13 +336,13 @@ export const getProjectLogs = async (
         endDate: endDate ? new Date(endDate as string) : undefined,
       }),
       // Get activity logs from the database
-      Activity.find({ 
+      Activity.find({
         projectId: new Types.ObjectId(id),
         ...(startDate && { timestamp: { $gte: new Date(startDate as string) } }),
         ...(endDate && { timestamp: { $lte: new Date(endDate as string) } }),
       })
-      .sort({ timestamp: -1 })
-      .limit(Number(limit))
+        .sort({ timestamp: -1 })
+        .limit(Number(limit))
     ]);
 
     // Combine and sort all logs by timestamp
@@ -360,7 +359,7 @@ export const getProjectLogs = async (
         metadata: log.metadata,
         type: 'activity'
       }))
-    ].sort((a, b) => 
+    ].sort((a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
 
@@ -371,9 +370,9 @@ export const getProjectLogs = async (
     });
   } catch (error) {
     logger.error("Failed to retrieve project logs:", error);
-    res.status(500).json({ 
-      message: "Failed to retrieve project logs", 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    res.status(500).json({
+      message: "Failed to retrieve project logs",
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };
@@ -387,7 +386,7 @@ async function readProjectSystemLogs(projectName: string, options: {
   try {
     const logPath = path.join(process.cwd(), 'logs', 'combined.log');
     const logContent = await readFile(logPath, 'utf-8');
-    
+
     // Parse log lines and filter by project name
     const logs = logContent
       .split('\n')

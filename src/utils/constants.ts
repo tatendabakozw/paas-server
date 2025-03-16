@@ -16,10 +16,6 @@ export const GITHUB_CLIENT_ID= process.env.GITHUB_CLIENT_ID || "github_client_id
 export const GITHUB_CLIENT_SECRET=process.env.GITHUB_CLIENT_SECRET || "github_client_secret"
 export const GITHUB_API_URL = "https://api.github.com"
 
-export const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || "aws_access_key_id"
-export const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || "aws_secret_access_key"
-export const AWS_REGION = process.env.AWS_REGION || "us-west-2"
-export const VPC_ID = process.env.VPC_ID || "vpc-dddddddddddd"
 
 export const ECR_REPO_NAME = process.env.ECR_REPO_NAME || "paas-ecr-repo"
 export const ECS_CLUSTER_NAME = process.env.ECS_CLUSTER_NAME || "paas-cluster"
