@@ -8,6 +8,8 @@ import { deployProject } from "@helpers/deployProject";
 import { readFile } from 'fs/promises';
 import path from 'path';
 import Activity from "@models/activityModel";
+import crypto from 'crypto';
+import { EnvVar } from "src/types/env.types";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -22,154 +24,205 @@ export const createProject = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  // Check if the user is authenticated
-  if (!req.user?.userId) {
-    res.status(401).json({
-      success: false,
-      error: "Unauthorized",
-      message: "User authentication required"
-    });
-    return;
-  }
+  const correlationId = crypto.randomUUID(); // Add request tracking
+  const startTime = Date.now();
 
-  const {
-    name,
-    description,
-    repositoryUrl,
-    branch,
-    envVars,
-    runtime,
-    version,
-    build,
-    start,
-    root,
-    projectType
-  } = req.body;
-
-
-
-  // Validate required fields
-  if (!name || !repositoryUrl) {
-    res.status(400).json({
-      success: false,
-      error: "MISSING_FIELDS",
-      message: "Missing required fields: name and repositoryUrl are required"
-    });
-    return;
-  }
-
-  // Validate project name format
-  const nameRegex = /^[a-zA-Z0-9-_]+$/;
-  if (!nameRegex.test(name)) {
-    res.status(400).json({
-      success: false,
-      error: "INVALID_NAME_FORMAT",
-      message: "Project name must only contain alphanumeric characters, hyphens, and underscores"
-    });
-    return;
-  }
-
-  const _user = await User.findById(req.user.userId);
-
-
-  if (!_user) {
-    res.status(401).json({
-      success: false,
-      error: "USER_NOT_FOUND",
-      message: "User account not found"
-    });
-    return;
-  }
   try {
+    // Authentication check with detailed logging
+    if (!req.user?.userId) {
+      logger.warn(`Unauthorized project creation attempt`, { correlationId });
+      res.status(401).json({
+        success: false,
+        error: "Unauthorized",
+        message: "User authentication required"
+      });
+      return;
+    }
 
-    // Create the project document
+    const {
+      name,
+      description,
+      repositoryUrl,
+      branch,
+      envVars,
+      projectType,
+      buildCommand,
+      startCommand,
+    } = req.body;
+
+    const _user = await User.findById(req.user.userId);
+
+    if (!_user) {
+      res.status(401).json({
+        success: false,
+        error: "USER_NOT_FOUND",
+        message: "User account not found"
+      });
+      return;
+    }
+
+    // Enhanced validation logging
+    logger.info(`Starting project creation`, {
+      correlationId,
+      userId: req.user.userId,
+      projectName: name,
+      projectType
+    });
+
+    const formatedEnvVars = envVars?.map((env:EnvVar) => ({
+      key: env.key,
+      value: env.value,
+      isSecret: env.isSecret || false,
+      description: env.description || ''
+    })) || [];
+
+    console.log("formatted env, ", formatedEnvVars)
+
+    // Project creation with progress logging
+    logger.info(`Creating project document`, { correlationId });
     const project = new Project({
       name,
       description,
       userId: new Types.ObjectId(req.user.userId),
       repositoryUrl,
       branch: branch || "main",
-      envVars,
-      projectType
+      projectType,
+      buildCommand: buildCommand?.trim() || null,
+      startCommand: startCommand?.trim() || null,
+      envVars: formatedEnvVars
     });
 
-
-
-    // Log activity for project creation
+    // Enhanced activity logging
     await logActivity({
       userId: req.user.userId,
       action: "PROJECT_CREATED",
       details: `Created new project: ${name}`,
       projectId: project._id,
       metadata: {
+        correlationId,
         projectName: name,
         repositoryUrl,
         branch,
+        projectType,
+        creationDuration: Date.now() - startTime,
+        environmentVariablesCount: Object.keys(project.envVars).length
       },
     });
-
-    await project.save()
 
     const projectConfig = {
       metadata: {
         repositoryUrl,
         branch: branch || "main",
-        runtime,
-        version,
-        build,
-        start,
-        root
+        build: buildCommand?.trim() || null,
+        start: startCommand?.trim() || null,
       },
-      envVars: envVars || {},  // Environment variables for the application
-      instanceType: "s-1vcpu-1gb", // Can be made configurable if needed
-      region: "nyc1",  // Can be made configurable if needed
+      envVars: formatedEnvVars,
+      instanceType: "s-1vcpu-1gb",
+      region: "nyc1",
       githubToken: _user.githubAccessToken?.toString(),
       projectType
     }
-    const projectName = name
 
-    const deploymentResult = await deployProject(projectName, projectConfig);
+    // Deployment with status tracking
+    logger.info(`Starting project deployment`, { correlationId, projectId: project._id });
+    project.deploymentStatus = "deploying";
+    await project.save();
 
-    if (!deploymentResult.success) {
-      throw new Error(deploymentResult.raw || 'Deployment failed');
+    // Move deploymentResult declaration outside the try block
+    let deploymentResult: any;
+
+    try {
+      deploymentResult = await deployProject(name, projectConfig);
+      if (!deploymentResult.success) {
+        logger.error(`Deployment failed`, {
+          correlationId,
+          projectId: project._id,
+          error: deploymentResult.raw,
+          config: {
+            ...projectConfig,
+            githubToken: '[REDACTED]' // Avoid logging sensitive data
+          }
+        });
+        project.deploymentStatus = "failed";
+        // project.lastError = deploymentResult.raw;
+        await project.save();
+        
+        res.status(400).json({
+          success: false,
+          error: "DEPLOYMENT_FAILED",
+          message: "Project created but deployment failed",
+          details: deploymentResult.raw,
+          projectId: project._id
+        });
+        return;
+      }
+    } catch (deployError) {
+      logger.error(`Deployment exception`, {
+        correlationId,
+        projectId: project._id,
+        error: deployError instanceof Error ? deployError.message : 'Unknown error',
+        stack: deployError instanceof Error ? deployError.stack : undefined
+      });
+      
+      project.deploymentStatus = "failed";
+      // project.lastError = deployError instanceof Error ? deployError.message : 'Unknown error';
+      await project.save();
+      
+      throw deployError; // Let the main error handler deal with it
     }
+
+    // Now deploymentResult is accessible here
+    const duration = Date.now() - startTime;
+    logger.info(`Project created and deployed successfully`, {
+      correlationId,
+      projectId: project._id,
+      duration,
+      deploymentUrl: deploymentResult.deploymentDetails.appUrl
+    });
 
     project.deploymentStatus = "deployed";
     project.deploymentUrl = deploymentResult.deploymentDetails.appUrl;
     project.lastDeployedAt = new Date();
-
     await project.save();
 
     res.status(201).json({
       success: true,
       message: "Project created and deployed successfully",
       data: {
-        project: {
-          id: project._id,
-          name: project.name,
-          repositoryUrl: project.repositoryUrl,
-          branch: project.branch,
-          status: project.status,
-          projectType: project.projectType
-        },
+        project: project.toJSON(),
         deployment: {
           status: project.deploymentStatus,
           url: project.deploymentUrl,
-          lastDeployedAt: project.lastDeployedAt,
-          appId: deploymentResult.deploymentDetails.appId,
-          stackName: deploymentResult.deploymentDetails.stackName
+          duration,
+          correlationId
         }
       }
     });
 
+  } catch (error:any) {
+    const errorId = crypto.randomUUID();
+    logger.error(`Project creation failed`, {
+      correlationId,
+      errorId,
+      error: error instanceof Error ? {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        // Add mongoose validation error details
+        validationErrors: error.name === 'ValidationError' ? (error as any).errors : undefined
+      } : error,
+      duration: Date.now() - startTime
+    });
+    console.error(error)
 
-  } catch (error) {
-    logger.error("Failed to create project:", error);
-    res.status(500).json({
+    // Send appropriate status code for validation errors
+    const statusCode = error.name === 'ValidationError' ? 400 : 500;
+    res.status(statusCode).json({
       success: false,
-      error: "SERVER_ERROR",
-      message: "An unexpected error occurred while creating the project",
-      precise: error
+      error: error.name === 'ValidationError' ? 'VALIDATION_ERROR' : 'SERVER_ERROR',
+      message: error.message,
+      errorId,
+      correlationId
     });
   }
 };

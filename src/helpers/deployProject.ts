@@ -32,7 +32,8 @@ export async function deployProject(projectName: string, projectConfig: any) {
                 stackName,
                 appUrl: parsedOutputs.appUrl,
                 appId: parsedOutputs.appId,
-                status: 'deployed'
+                status: 'deployed',
+                success: true
             },
             raw: result
         };

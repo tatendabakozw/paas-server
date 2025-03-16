@@ -1,41 +1,12 @@
 import { Schema, model, Document, Types } from "mongoose";
-
-export interface EnvVar {
-  key: string;
-  value: string;
-}
-
-interface DeploymentConfig {
-  instanceType: string;
-  minInstances: number;
-  maxInstances: number;
-  port: number;
-  healthCheckPath: string;
-  memory: number;
-  cpu: number;
-}
-
-export interface ProjectDocument extends Document {
-  name: string;
-  description?: string;
-  userId: Types.ObjectId;
-  status: "active" | "suspended" | "archived";
-  envVars: EnvVar[];
-  repositoryUrl: string;
-  branch: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deployment?: DeploymentConfig;
-  deploymentStatus: "not_deployed" | "deploying" | "deployed" | "failed";
-  deploymentUrl?: string;
-  lastDeployedAt?: Date;
-  environment?: string;
-  projectType?:"static-site" | "web-service"
-}
+import { EnvVar } from "src/types/env.types";
+import { DeploymentConfig, ProjectDocument } from "src/types/project";
 
 const EnvVarSchema = new Schema<EnvVar>({
   key: { type: String, required: true },
   value: { type: String, required: true },
+  isSecret: { type: Boolean, default: false },
+  description: { type: String, default: "" },
 });
 
 const DeploymentConfigSchema = new Schema<DeploymentConfig>({
@@ -101,6 +72,8 @@ const ProjectSchema = new Schema<ProjectDocument>(
     },
     deploymentUrl: String,
     lastDeployedAt: Date,
+    buildCommand: String,
+    startCommand: String,
   },
   {
     timestamps: true,

@@ -19,3 +19,4 @@ TODO: make edit project accassible and make edit project use pulumi
 TODO: make delete project accessible
 TODO: put out logs from digital ocean to frontend
 TODO: when user pushes to github, update project
+TODO: prevent creation of projects with the same name
