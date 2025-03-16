@@ -41,6 +41,12 @@ const UserSchema = new Schema({
   },
   lastLogin:{
     type: Date
+  },
+  allowedProjects: {
+    type: Number,
+    default: 1,
+    min: 0,
+    required: true
   }
 },{
     timestamps: true

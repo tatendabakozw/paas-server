@@ -61,6 +61,23 @@ export const createProject = async (
       return;
     }
 
+     // Get count of user's active projects
+     const activeProjectsCount = await Project.countDocuments({
+      userId: req.user.userId,
+      status: "active"
+    });
+
+    const userAllowedProjects = _user.allowedProjects || 1
+    
+    if (activeProjectsCount >= userAllowedProjects) {
+      res.status(403).json({ 
+        error: "Project limit reached",
+        message: `You can only have ${userAllowedProjects} active project(s). Please upgrade your plan or archive existing projects.`
+      });
+      return;
+    }
+    
+
     // Enhanced validation logging
     logger.info(`Starting project creation`, {
       correlationId,

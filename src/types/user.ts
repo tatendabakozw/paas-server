@@ -11,6 +11,7 @@ export interface IUser extends Document {
   username?: string
   githubAccessToken?:string
   githubId?:string
+  allowedProjects?: number;
 }
 
 export interface SessionUser {
