@@ -18,6 +18,7 @@ import { AxiosError } from "axios";
 import passport from "passport";
 import jwt from "jsonwebtoken";
 import logger from "@utils/logger";
+import { TokenExpiredError } from 'jsonwebtoken';
 
 // Custom error class for authentication errors
 class AuthError extends Error {
@@ -48,6 +49,10 @@ const getCookieConfig = (maxAge: number = 7 * 24 * 60 * 60 * 1000) => ({
   sameSite: "strict" as const,
   maxAge,
 });
+
+// Add these constants for token expiration times
+const ACCESS_TOKEN_EXPIRY = '15m';  // 15 minutes
+const REFRESH_TOKEN_EXPIRY = '7d';  // 7 days
 
 export const registerUser = async (
   req: TypedRequestBody<RegisterRequestBody>,
@@ -112,8 +117,8 @@ export const githubCallback = async (
     console.log('User email:', userEmail);
 
     const [accessToken, refreshToken] = await Promise.all([
-      generateAccessToken(user._id),
-      generateRefreshToken(user._id),
+      generateAccessToken(user._id, user.email, ACCESS_TOKEN_EXPIRY),
+      generateRefreshToken(user._id, REFRESH_TOKEN_EXPIRY)
     ]);
 
     // Set refresh token cookie
@@ -135,6 +140,7 @@ export const loginUser: RequestHandler = (
 ): void => {
   passport.authenticate("local", (err: any, user: any, info: any) => {
     if (err) {
+      logger.error('Authentication error:', err);
       return res.status(500).json({ message: "Internal server error" });
     }
 
@@ -146,14 +152,15 @@ export const loginUser: RequestHandler = (
 
     req.logIn(user, async (loginErr) => {
       if (loginErr) {
+        logger.error('Login error:', loginErr);
         return res.status(500).json({ message: "Login failed" });
       }
 
       try {
         // Generate tokens with consistent user data
         const [accessToken, refreshToken] = await Promise.all([
-          generateAccessToken(user._id, user.email),
-          generateRefreshToken(user._id),
+          generateAccessToken(user._id.toString(), user.email, ACCESS_TOKEN_EXPIRY),
+          generateRefreshToken(user._id.toString(), ACCESS_TOKEN_EXPIRY )
         ]);
 
         // Update last login timestamp
@@ -168,8 +175,12 @@ export const loginUser: RequestHandler = (
             email: user.email
           }
         });
-      } catch (tokenErr) {
-        return res.status(500).json({ message: "Token generation failed" });
+      } catch (tokenErr:any) {
+        logger.error('Token generation error:', tokenErr);
+        return res.status(500).json({ 
+          message: "Token generation failed",
+          details: process.env.NODE_ENV === 'development' ? tokenErr.message : undefined
+        });
       }
     });
   })(req, res, next);
@@ -184,7 +195,10 @@ export const refreshToken: RequestHandler = async (
     const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
-      res.status(401).json({ message: "Refresh token not found" });
+      res.status(401).json({ 
+        error: 'refresh_token_required',
+        message: "Refresh token not found" 
+      });
       return;
     }
 
@@ -194,29 +208,47 @@ export const refreshToken: RequestHandler = async (
 
     const user = await User.findById(decoded.userId);
     if (!user) {
-      res.status(403).json({ message: "Invalid refresh token" });
+      res.clearCookie("refreshToken", getCookieConfig());
+      res.status(401).json({ 
+        error: 'invalid_token',
+        message: "User not found" 
+      });
       return;
     }
 
-    // Generate both new tokens
+    // Generate both new tokens with explicit expiry times
     const [accessToken, newRefreshToken] = await Promise.all([
-      generateAccessToken(user._id, user.email),
-      generateRefreshToken(user._id)
+      generateAccessToken(user._id, user.email, ACCESS_TOKEN_EXPIRY),
+      generateRefreshToken(user._id, REFRESH_TOKEN_EXPIRY)
     ]);
 
     // Set new refresh token cookie
     res.cookie("refreshToken", newRefreshToken, getCookieConfig());
 
-    // Send new access token
-    res.json({ accessToken });
+    // Send new access token with expiry information
+    res.json({ 
+      accessToken,
+      expiresIn: ACCESS_TOKEN_EXPIRY,
+      tokenType: 'Bearer'
+    });
   } catch (error) {
     logger.error("Error in refreshToken:", error);
-    if (error instanceof jwt.TokenExpiredError) {
-      res.clearCookie("refreshToken", getCookieConfig()); // Clear expired cookie
-      res.status(403).json({ message: "Refresh token expired" });
+    
+    // Clear the refresh token cookie on any error
+    res.clearCookie("refreshToken", getCookieConfig());
+    
+    if (error instanceof TokenExpiredError) {
+      res.status(401).json({ 
+        error: 'token_expired',
+        message: "Refresh token has expired" 
+      });
       return;
     }
-    res.status(403).json({ message: "Invalid refresh token" });
+    
+    res.status(401).json({ 
+      error: 'invalid_token',
+      message: "Invalid refresh token" 
+    });
   }
 };
 
